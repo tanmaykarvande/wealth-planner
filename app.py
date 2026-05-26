@@ -9,7 +9,7 @@ st.set_page_config(page_title="Wealth Architecture Engine", layout="wide")
 # 2. GRANULAR WEALTH ENGINE CLASS
 class GranularWealthEngine:
     def __init__(self, inputs, step_up_schedule):
-        self.client_name = inputs.get("client_name", "Karan Sharma")
+        self.client_name = inputs.get("client_name", "Aditya Sharma")
         self.current_age = inputs.get("current_age", 40)
         self.annual_premium = 150000
         self.payout_pct = 0.40
@@ -49,18 +49,28 @@ schedule_df = st.sidebar.data_editor(pd.DataFrame({"Year": [2, 5, 10], "Increase
 custom_schedule = dict(zip(schedule_df["Year"], schedule_df["Increase"]))
 
 # 4. EXECUTION
-engine = GranularWealthEngine({"client_name": client_name, "current_age": current_age, "expected_return": expected_return, "monthly_swp": monthly_swp, "swp_start_age": retire_age}, custom_schedule)
+engine = GranularWealthEngine({
+    "client_name": client_name, 
+    "current_age": current_age, 
+    "expected_return": expected_return, 
+    "monthly_swp": monthly_swp, 
+    "swp_start_age": retire_age
+}, custom_schedule)
 df = engine.run_projection()
 
 # 5. DASHBOARD UI
 st.title("Wealth Indicator Dashboard")
-val_at_60 = df.loc[df['Age'] == retire_age, 'Valuation'].values[0]
+
+def format_inr(val):
+    return f"Rs. {int(val):,}/-"
+
+val_at_retire = df.loc[df['Age'] == retire_age, 'Valuation'].values[0]
 status = "SUSTAINABLE" if df.iloc[-1]['Valuation'] > 0 else "CORPUS EXHAUSTED"
 
 col1, col2, col3 = st.columns(3)
-col1.metric("Capital at Retirement", f"Rs. {val_at_60:,.2f}")
+col1.metric("Capital at Retirement", format_inr(val_at_retire))
 col2.metric("Sustainability", status)
-col3.metric("Target SWP", f"Rs. {monthly_swp:,.2f}/mo")
+col3.metric("Target Monthly SWP", format_inr(monthly_swp))
 
 st.divider()
 
@@ -70,15 +80,18 @@ with c_left:
     st.subheader("Wealth Balance Trajectory")
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(df['Age'], df['Valuation'], marker='o', color='#1f497d', linewidth=2)
-    # 5-year labels only
+    
+    # Labels every 5 years
     for i, row in df.iloc[::5].iterrows():
-        ax.annotate(f"Rs.{row['Valuation']/10000000:.1f} Cr", (row['Age'], row['Valuation']), xytext=(0,10), textcoords='offset points', ha='center', fontsize=9)
+        ax.annotate(f"Rs.{row['Valuation']/10000000:.1f} Cr", (row['Age'], row['Valuation']), 
+                    textcoords="offset points", xytext=(0,10), ha='center', fontsize=9)
+    
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'Rs.{x/10000000:.2f} Cr'))
     ax.grid(True, linestyle='--', alpha=0.6)
     st.pyplot(fig)
 
 with c_right:
     st.subheader("💡 Advisor Guidance")
-    st.info(f"Based on your profile, you are aiming for a monthly withdrawal of Rs. {monthly_swp:,.2f}. The plan is currently {status}.")
+    st.info(f"Based on your profile, the strategy is currently {status}. You can download the full report below.")
     st.button("📥 Download Branded Executive PDF")
     st.button("📥 Download Raw Calculations Excel")
