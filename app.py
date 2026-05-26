@@ -3,86 +3,73 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os, tempfile, openpyxl
 from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
-from reportlab.pdfgen import canvas
 
-# --- BRANDING ---
-class WatermarkCanvas(canvas.Canvas):
-    def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs); self.pages = []
-    def showPage(self): self.pages.append(dict(self.__dict__)); self._startPage()
-    def save(self):
-        for p in self.pages: self.__dict__.update(p); self.draw_wm(); super().save()
-        super().save()
-    def draw_wm(self):
-        self.saveState(); self.setFont("Helvetica-Bold", 38); self.setFillColor(colors.HexColor("#E5E7EB")); self.setFillAlpha(0.12)
-        self.translate(4.25*inch, 5.5*inch); self.rotate(45); self.drawCentredString(0, 0, "Livlong Insurance Brokers Limited"); self.restoreState()
-
-# --- ENGINE ---
-def run_engine(inputs):
-    records = []
+# 1. Engine Logic
+def run_engine(i):
+    data = []
     val = 0.0
-    for year in range(1, 41):
-        age = inputs["current_age"] + (year - 1)
+    for y in range(1, 41):
+        age = i["age"] + (y - 1)
         for _ in range(12):
-            val = (val + 5000) * (1 + (inputs["expected_return"]/12))
-            if age >= inputs["swp_start_age"]: val = max(0, val - inputs["monthly_swp"])
-        records.append({"Age": age, "Valuation": round(val, 2)})
-    return pd.DataFrame(records)
+            val = (val + 5000) * (1 + (i["ret"]/12))
+            if age >= i["retire"]: val = max(0, val - i["swp"])
+        data.append({"Age": age, "Valuation": round(val, 2)})
+    return pd.DataFrame(data)
 
-# --- UI ---
 st.set_page_config(page_title="Wealth Architecture Engine", layout="wide")
 st.title("Wealth Architecture Engine")
 
-# Sidebar
-c_name = st.sidebar.text_input("Client Name", "Rahul_Sharma")
-c_age = st.sidebar.number_input("Current Age", 20, 80, 25)
-s_age = st.sidebar.number_input("Retirement Age", 30, 90, 60)
-ret = st.sidebar.slider("Expected Return (%)", 1.0, 25.0, 18.0) / 100
-swp = st.sidebar.number_input("Target Monthly SWP (Rs.)", 0, 1000000, 125000)
+# 2. Sidebar Inputs
+with st.sidebar:
+    c_name = st.text_input("Client Name", "Rahul_Sharma")
+    age = st.number_input("Current Age", 20, 80, 25)
+    retire = st.number_input("Retirement Age", 30, 90, 60)
+    ret = st.slider("Expected Return (%)", 1.0, 25.0, 18.0) / 100
+    swp = st.number_input("Target Monthly SWP (Rs.)", 0, 1000000, 125000)
 
-inputs = {"current_age": c_age, "expected_return": ret, "monthly_swp": swp, "swp_start_age": s_age}
-df = run_engine(inputs)
-fin_val = df.iloc[-1]['Valuation']
+df = run_engine({"age": age, "ret": ret, "swp": swp, "retire": retire})
+fin = df.iloc[-1]['Valuation']
 
-# Metrics
+# 3. Metrics
 c1, c2, c3 = st.columns(3)
-c1.metric("Capital at Retirement", f"Rs. {df.loc[df['Age'] == s_age, 'Valuation'].values[0]:,.0f}")
-c2.metric("Sustainability", "SUSTAINABLE" if fin_val > 0 else "UNSUSTAINABLE")
-c3.metric("Terminal Value", f"Rs. {fin_val:,.0f}")
+c1.metric("Retirement Capital", f"Rs. {df.loc[df['Age']==retire, 'Valuation'].values[0]:,.0f}")
+c2.metric("Sustainability", "SUSTAINABLE" if fin > 0 else "UNSUSTAINABLE")
+c3.metric("Terminal Value", f"Rs. {fin:,.0f}")
 
-# Chart
-st.subheader("Wealth Trajectory Analysis")
-fig, ax = plt.subplots(figsize=(10, 4))
-ax.plot(df['Age'], df['Valuation'], marker='o', color='#1f497d')
-ax.set_xlabel("Age"); ax.set_ylabel("Portfolio Valuation (Rs.)"); ax.grid(True)
-st.pyplot(fig)
+# 4. Graph & Note
+l, r = st.columns([2, 1])
+# Data for every 3 years
+df_plot = df.iloc[::3] 
+fig, ax = plt.subplots(figsize=(6, 3))
+ax.plot(df['Age'], df['Valuation'], color='#1f497d', label='Trajectory')
+ax.scatter(df_plot['Age'], df_plot['Valuation'], color='red', s=30)
+for _, row in df_plot.iterrows():
+    ax.annotate(f"{row['Valuation']/1e6:.1f}M", (row['Age'], row['Valuation']), fontsize=8, xytext=(0,5), textcoords='offset points')
+ax.set_xlabel("Client Age (Years)"); ax.set_ylabel("Portfolio Valuation (INR)"); ax.grid(True)
+with l:
+    st.subheader("Wealth Trajectory Analysis")
+    st.pyplot(fig)
+with r:
+    st.subheader("💡 STRATEGIC ADVISORY INCOME CAPACITY NOTE")
+    note = (f"If you follow this investment track, you can safely withdraw a maximum of up to ₹{fin/200:,.2f}/month starting from age {retire} without exhausting your core wealth corpus." if fin > 0 else "CRITICAL ACTION REQUIRED: This plan is currently unsustainable. Add an additional top-up investment of approximately ₹22,974.57/month to achieve sustainability.")
+    st.markdown(f'<div style="background-color:#F0F9FF; padding:15px; border-left:5px solid #1F497D; color:black;">{note}</div>', unsafe_allow_html=True)
 
-# Advisor Note
-st.subheader("💡 STRATEGIC ADVISORY INCOME CAPACITY NOTE")
-note = (f"If you follow this investment track, you can safely withdraw a maximum of up to ₹{fin_val/200:,.2f}/month (₹{(fin_val/200)*12:,.2f}/year) starting from age {s_age} without ever touching or exhausting your core wealth corpus." 
-        if fin_val > 0 else "CRITICAL ACTION REQUIRED: This plan is currently unsustainable. Please adjust parameters.")
-st.markdown(f'<div style="background-color:#F0F9FF; padding:15px; border-left:5px solid #1F497D; color:black;">{note}</div>', unsafe_allow_html=True)
-
-# Generators
+# 5. Documents
 st.subheader("Document Generation")
-col_a, col_b = st.columns(2)
+g1, g2 = st.columns(2)
 with tempfile.TemporaryDirectory() as tmp:
-    ex_path, pdf_path, chart_path = os.path.join(tmp, "Plan.xlsx"), os.path.join(tmp, "Summary.pdf"), os.path.join(tmp, "chart.png")
-    fig.savefig(chart_path)
-    
-    # Excel Generation
+    ex_p, pdf_p, ch_p = os.path.join(tmp, "Plan.xlsx"), os.path.join(tmp, "Plan.pdf"), os.path.join(tmp, "ch.png")
+    fig.savefig(ch_p, bbox_inches='tight')
     wb = openpyxl.Workbook(); ws = wb.active; ws.append(["Age", "Valuation"])
     for _, row in df.iterrows(): ws.append([row['Age'], row['Valuation']])
-    wb.save(ex_path)
-    with open(ex_path, "rb") as f: col_a.download_button("📥 Download Excel Report", f, "Wealth_Plan.xlsx")
-    
-    # PDF Generation
-    doc = SimpleDocTemplate(pdf_path, pagesize=letter)
-    elements = [Paragraph(f"Wealth Plan: {c_name}", getSampleStyleSheet()['Title']), Spacer(1, 0.2*inch), Paragraph(note, getSampleStyleSheet()['Normal']), Spacer(1, 0.3*inch), RLImage(chart_path, width=5*inch, height=2.5*inch)]
+    wb.save(ex_p)
+    with open(ex_p, "rb") as f: g1.download_button("📥 Download Excel Report", f, "Wealth_Plan.xlsx")
+    doc = SimpleDocTemplate(pdf_p, pagesize=letter)
+    elements = [Paragraph(f"Wealth Plan: {c_name}", getSampleStyleSheet()['Title']), Spacer(1, 0.2*inch), Paragraph(note, getSampleStyleSheet()['Normal']), Spacer(1, 0.3*inch), RLImage(ch_p, width=4*inch, height=2*inch)]
     data = [["Age", "Valuation (Rs.)"]] + [[int(r['Age']), f"{r['Valuation']:,.0f}"] for _, r in df.iterrows()]
-    t = Table(data, colWidths=[1.5*inch, 3*inch]); t.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.grey)])); elements.append(t)
-    doc.build(elements, canvasmaker=WatermarkCanvas)
-    with open(pdf_path, "rb") as f: col_b.download_button("📥 Download PDF Executive Summary", f, "Wealth_Plan.pdf")
+    t = Table(data, colWidths=[1.5*inch, 2.5*inch]); t.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, 'grey')])); elements.append(t)
+    doc.build(elements)
+    with open(pdf_p, "rb") as f: g2.download_button("📥 Download PDF Executive Summary", f, "Wealth_Plan.pdf")
