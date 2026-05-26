@@ -54,7 +54,7 @@ c3.metric("Terminal Value", f"Rs. {fin_val:,.0f}")
 
 st.subheader("💡 STRATEGIC ADVISORY INCOME CAPACITY NOTE")
 note = f"If you follow this investment track, you can safely withdraw a maximum of up to ₹{fin_val/200:,.2f}/month (₹{(fin_val/200)*12:,.2f}/year) starting from age {s_age} without ever touching or exhausting your core wealth corpus." if fin_val > 0 else "CRITICAL ACTION REQUIRED: This plan is currently unsustainable. To meet your target milestone, you need to add an additional top-up investment of approximately ₹22,974.57/month on top of the standard payouts from the policy to transition this framework into a fully sustainable model."
-st.markdown(f'<div style="background-color:#F0F9FF; padding:15px; border-left:5px solid #1F497D;">{note}</div>', unsafe_allow_html=True)
+st.markdown(f'<div style="background-color:#F0F9FF; padding:15px; border-left:5px solid #1F497D; color:black;">{note}</div>', unsafe_allow_html=True)
 
 # Generator
 if st.button("Generate Final Executive Docs"):
