@@ -14,7 +14,7 @@ def run_engine(i):
     for y in range(1, 41):
         age = i["age"] + (y - 1)
         for _ in range(12):
-            val = (val + 5000) * (1 + (i["ret"]/12))
+            val = (val + i["custom_calc"]) * (1 + (i["ret"]/12)) # Custom calculation integrated
             if age >= i["retire"]: val = max(0, val - i["swp"])
         data.append({"Age": age, "Valuation": round(val, 2)})
     return pd.DataFrame(data)
@@ -29,8 +29,9 @@ with st.sidebar:
     retire = st.number_input("Retirement Age", 30, 90, 60)
     ret = st.slider("Expected Return (%)", 1.0, 25.0, 18.0) / 100
     swp = st.number_input("Target Monthly SWP (Rs.)", 0, 1000000, 125000)
+    custom_calc = st.number_input("Custom Monthly Investment (Rs.)", 0, 500000, 5000) # Added back
 
-df = run_engine({"age": age, "ret": ret, "swp": swp, "retire": retire})
+df = run_engine({"age": age, "ret": ret, "swp": swp, "retire": retire, "custom_calc": custom_calc})
 fin = df.iloc[-1]['Valuation']
 
 # 3. Metrics
@@ -41,7 +42,6 @@ c3.metric("Terminal Value", f"Rs. {fin:,.0f}")
 
 # 4. Graph & Note
 l, r = st.columns([2, 1])
-# Data for every 3 years
 df_plot = df.iloc[::3] 
 fig, ax = plt.subplots(figsize=(6, 3))
 ax.plot(df['Age'], df['Valuation'], color='#1f497d', label='Trajectory')
