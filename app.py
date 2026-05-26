@@ -28,7 +28,6 @@ from reportlab.lib import colors
 # ══════════════════════════════════════════════════════════════════════════════
 
 def indian_fmt(x):
-    """Format a number using Indian metric system: K, L (lakh), Cr (crore)."""
     if x is None or (isinstance(x, float) and np.isnan(x)):
         return "Rs.0"
     x = float(x)
@@ -36,23 +35,25 @@ def indian_fmt(x):
     x = abs(x)
     if x >= 1e7:
         s = f"Rs.{x/1e7:.2f}Cr"
-    elif x >= 1e5:
+    elif x >= 1e6:
         s = f"Rs.{x/1e5:.2f}L"
-    elif x >= 1e3:
-        s = f"Rs.{x/1e3:.1f}K"
     else:
-        s = f"Rs.{x:.0f}"
+        s = f"Rs.{x:,.0f}"
     return f"-{s}" if neg else s
 
 def indian_fmt_short(x):
-    """Compact version for axis ticks — fewer decimals."""
+    if x is None: return "0"
+    x = float(x)
+    if x == 0: return "0"
+    neg = x < 0
+    x = abs(x)
     if x >= 1e7:
-        return f"{x/1e7:.1f}Cr"
-    elif x >= 1e5:
-        return f"{x/1e5:.1f}L"
+        s = f"{x/1e7:.1f}Cr"
+    elif x >= 1e6:
+        s = f"{x/1e5:.1f}L"
     else:
-        return f"{x:,.0f}"
-
+        s = f"{x:,.0f}"
+    return f"-{s}" if neg else s
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 1. GRANULAR WEALTH ENGINE
