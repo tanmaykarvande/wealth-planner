@@ -6,28 +6,29 @@ import matplotlib.ticker as mticker
 # 1. PAGE CONFIG
 st.set_page_config(page_title="Wealth Architecture Engine", layout="wide")
 
-# Indian Number Formatter
-def format_indian(val):
-    return f"₹{val:,.2f}"
-
-# 2. ENGINE CLASS
+# 2. GRANULAR WEALTH ENGINE CLASS
 class GranularWealthEngine:
     def __init__(self, inputs, step_up_schedule):
+        self.client_name = inputs.get("client_name", "Karan Sharma")
+        self.current_age = inputs.get("current_age", 40)
         self.annual_premium = 150000
         self.payout_pct = 0.40
+        self.expected_return = inputs.get("expected_return", 0.18)
+        self.monthly_swp_target = inputs.get("monthly_swp", 125000)
+        self.swp_start_age = inputs.get("swp_start_age", 60)
         self.base_monthly_sip = round((self.annual_premium * self.payout_pct) / 12, 2)
-        self.monthly_rate = inputs["expected_return"] / 12
+        self.monthly_rate = self.expected_return / 12
         self.step_up_schedule = step_up_schedule
         
-    def run_projection(self, current_age, swp_start_age, monthly_swp_target):
+    def run_projection(self):
         records = []
         current_corpus = 0.0
         cumulative_step_up = 0.0
         for year in range(1, 41):
-            age = current_age + (year - 1)
+            age = self.current_age + (year - 1)
             cumulative_step_up += self.step_up_schedule.get(year, 0.0)
             total_monthly_sip = self.base_monthly_sip + cumulative_step_up
-            monthly_swp = monthly_swp_target if age >= swp_start_age else 0.0
+            monthly_swp = self.monthly_swp_target if age >= self.swp_start_age else 0.0
             for month in range(1, 13):
                 current_corpus += total_monthly_sip
                 current_corpus *= (1 + self.monthly_rate)
@@ -35,40 +36,49 @@ class GranularWealthEngine:
             records.append({"Age": age, "Valuation": round(current_corpus, 2)})
         return pd.DataFrame(records)
 
-# 3. SIDEBAR
-st.sidebar.header("📋 Client Parameters")
-current_age = st.sidebar.number_input("Current Age", 20, 90, 40)
-retire_age = st.sidebar.number_input("Retirement Age", 20, 90, 60)
-expected_return = st.sidebar.slider("Expected Return (%)", 1.0, 25.0, 18.0, step=0.05) / 100
-monthly_swp = st.sidebar.number_input("Target Monthly SWP (₹)", 0, 1000000, 125000)
+# 3. SIDEBAR INPUTS
+st.sidebar.header("📋 Client Parameter Profile")
+client_name = st.sidebar.text_input("Client Name", "Aditya Sharma")
+current_age = st.sidebar.number_input("Current Age", 20, 80, 40)
+retire_age = st.sidebar.number_input("Retirement Age", 30, 90, 60)
+expected_return = st.sidebar.slider("Expected Portfolio Return (%)", 1.0, 25.0, 18.0, step=0.05) / 100
+monthly_swp = st.sidebar.number_input("Target Monthly SWP (Rs.)", 0, 1000000, 125000)
 
-st.sidebar.subheader("📅 Step-Up Schedule (Year: Increase)")
+st.sidebar.subheader("📈 Custom Step-Up Schedule")
 schedule_df = st.sidebar.data_editor(pd.DataFrame({"Year": [2, 5, 10], "Increase": [0, 0, 0]}), use_container_width=True)
 custom_schedule = dict(zip(schedule_df["Year"], schedule_df["Increase"]))
 
 # 4. EXECUTION
-engine = GranularWealthEngine({"expected_return": expected_return}, custom_schedule)
-df = engine.run_projection(current_age, retire_age, monthly_swp)
+engine = GranularWealthEngine({"client_name": client_name, "current_age": current_age, "expected_return": expected_return, "monthly_swp": monthly_swp, "swp_start_age": retire_age}, custom_schedule)
+df = engine.run_projection()
 
-# 5. UI (Small fonts)
+# 5. DASHBOARD UI
 st.title("Wealth Indicator Dashboard")
-val_at_retire = df.loc[df['Age'] == retire_age, 'Valuation'].values[0]
+val_at_60 = df.loc[df['Age'] == retire_age, 'Valuation'].values[0]
 status = "SUSTAINABLE" if df.iloc[-1]['Valuation'] > 0 else "CORPUS EXHAUSTED"
 
 col1, col2, col3 = st.columns(3)
-col1.metric("Capital at Retirement", format_indian(val_at_retire))
+col1.metric("Capital at Retirement", f"Rs. {val_at_60:,.2f}")
 col2.metric("Sustainability", status)
-col3.metric("Target SWP", format_indian(monthly_swp))
+col3.metric("Target SWP", f"Rs. {monthly_swp:,.2f}/mo")
 
-# 6. CHART WITH DATA LABELS
-st.subheader("Wealth Trajectory")
-fig, ax = plt.subplots(figsize=(10, 4))
-ax.plot(df['Age'], df['Valuation'], marker='o', color='#1f497d')
+st.divider()
 
-# Labels every 5 years
-for i, row in df.iloc[::5].iterrows():
-    ax.annotate(f"₹{row['Valuation']/10000000:.1f}Cr", (row['Age'], row['Valuation']), 
-                textcoords="offset points", xytext=(0,10), ha='center', fontsize=8)
+# 6. CHART & ADVISOR GUIDANCE
+c_left, c_right = st.columns([2, 1])
+with c_left:
+    st.subheader("Wealth Balance Trajectory")
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(df['Age'], df['Valuation'], marker='o', color='#1f497d', linewidth=2)
+    # 5-year labels only
+    for i, row in df.iloc[::5].iterrows():
+        ax.annotate(f"Rs.{row['Valuation']/10000000:.1f} Cr", (row['Age'], row['Valuation']), xytext=(0,10), textcoords='offset points', ha='center', fontsize=9)
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'Rs.{x/10000000:.2f} Cr'))
+    ax.grid(True, linestyle='--', alpha=0.6)
+    st.pyplot(fig)
 
-ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'₹{x/10000000:.1f}Cr'))
-st.pyplot(fig)
+with c_right:
+    st.subheader("💡 Advisor Guidance")
+    st.info(f"Based on your profile, you are aiming for a monthly withdrawal of Rs. {monthly_swp:,.2f}. The plan is currently {status}.")
+    st.button("📥 Download Branded Executive PDF")
+    st.button("📥 Download Raw Calculations Excel")
