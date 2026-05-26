@@ -80,14 +80,14 @@ class GranularWealthEngine:
             records.append({
                 "Policy Year":              year,
                 "Age":                      age,
-                "Premium Paid (₹)":         premium_paid,
-                "Insurance Payout (₹)":     insurance_payout,
-                "Base Monthly SIP (₹)":     self.base_monthly_sip,
-                "New Step-Up Added (₹)":    year_increment,
-                "Total Monthly SIP (₹)":    total_monthly_sip,
-                "Annual SIP Contribution (₹)": annual_sip_contrib,
-                "Net End-of-Year Corpus (₹)":  net_corpus,
-                "Annual SWP Withdrawal (₹)":   annual_swp_drawn,
+                "Premium Paid (Rs.)":         premium_paid,
+                "Insurance Payout (Rs.)":     insurance_payout,
+                "Base Monthly SIP (Rs.)":     self.base_monthly_sip,
+                "New Step-Up Added (Rs.)":    year_increment,
+                "Total Monthly SIP (Rs.)":    total_monthly_sip,
+                "Annual SIP Contribution (Rs.)": annual_sip_contrib,
+                "Net End-of-Year Corpus (Rs.)":  net_corpus,
+                "Annual SWP Withdrawal (Rs.)":   annual_swp_drawn,
                 "Sustainability Flag":      status,
             })
 
@@ -97,10 +97,10 @@ class GranularWealthEngine:
     def generate_summary(self, df: pd.DataFrame) -> dict:
         ret_row = df[df["Age"] == self.swp_start_age]
         corpus_at_ret = (
-            ret_row["Net End-of-Year Corpus (₹)"].values[0]
+            ret_row["Net End-of-Year Corpus (Rs.)"].values[0]
             if not ret_row.empty else 0.0
         )
-        final_corpus = df["Net End-of-Year Corpus (₹)"].iloc[-1]
+        final_corpus = df["Net End-of-Year Corpus (Rs.)"].iloc[-1]
 
         n_months = (self.policy_term - (self.swp_start_age - self.current_age)) * 12
         r = self.monthly_rate
@@ -126,8 +126,8 @@ class GranularWealthEngine:
             max_swp = 0.0
 
         safe_note = (
-            f"Based on the projected corpus of ₹{corpus_at_ret:,.0f} at age {self.swp_start_age}, "
-            f"the strategy can safely sustain a monthly withdrawal of ₹{max_swp:,.0f} "
+            f"Based on the projected corpus of Rs.{corpus_at_ret:,.0f} at age {self.swp_start_age}, "
+            f"the strategy can safely sustain a monthly withdrawal of Rs.{max_swp:,.0f} "
             f"across the remaining {n_months // 12}-year horizon."
         ) if sustain_status == "Sustainable" else (
             f"⚠️ The current corpus trajectory is insufficient. "
@@ -158,7 +158,7 @@ def build_chart(df: pd.DataFrame, swp_start_age: int) -> plt.Figure:
     ax.set_facecolor("#0F1923")
 
     ages   = df["Age"]
-    corpus = df["Net End-of-Year Corpus (₹)"]
+    corpus = df["Net End-of-Year Corpus (Rs.)"]
 
     # Shade SWP region
     swp_mask = ages >= swp_start_age
@@ -171,15 +171,15 @@ def build_chart(df: pd.DataFrame, swp_start_age: int) -> plt.Figure:
     # Annotate every 5 years
     for _, row in df[df["Age"] % 5 == 0].iterrows():
         ax.annotate(
-            f"₹{row['Net End-of-Year Corpus (₹)']/1e6:.1f}M",
-            (row["Age"], row["Net End-of-Year Corpus (₹)"]),
+            f"Rs.{row['Net End-of-Year Corpus (Rs.)']/1e6:.1f}M",
+            (row["Age"], row["Net End-of-Year Corpus (Rs.)"]),
             fontsize=7.5, xytext=(0, 8), textcoords="offset points",
             ha="center", color="#C5D8EE",
             fontfamily="monospace",
         )
 
     ax.axvline(swp_start_age, color="#E05C2A", lw=1, linestyle="--", alpha=0.6)
-    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"₹{x/1e6:.1f}M"))
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"Rs.{x/1e6:.1f}M"))
     ax.set_xlabel("Client Age", fontsize=9, color="#8BA3BF")
     ax.set_ylabel("Portfolio Value", fontsize=9, color="#8BA3BF")
     ax.tick_params(labelsize=8, colors="#8BA3BF")
@@ -277,7 +277,7 @@ def build_excel(
         ck.font = F_REG; ck.border = _thin(); cv.border = _thin()
         if row % 2 == 0:
             ck.fill = _fill(LIGHT); cv.fill = _fill(LIGHT)
-        if   vtype == "inr":    cv.number_format = '"₹"#,##0.00'; cv.alignment = A_RIGHT
+        if   vtype == "inr":    cv.number_format = '"Rs."#,##0.00'; cv.alignment = A_RIGHT
         elif vtype == "pct":    cv.number_format = '0.00%';        cv.alignment = A_RIGHT
         elif vtype == "int":    cv.number_format = '#,##0';        cv.alignment = A_CTR
         elif vtype == "status":
@@ -298,7 +298,7 @@ def build_excel(
         for yr, amt in sorted(step_up_schedule.items()):
             ws_sum.cell(row=row, column=2, value=f"  Year {yr}").font = F_REG
             c = ws_sum.cell(row=row, column=3, value=amt)
-            c.font = F_REG; c.number_format = '"₹"#,##0.00'; c.alignment = A_RIGHT
+            c.font = F_REG; c.number_format = '"Rs."#,##0.00'; c.alignment = A_RIGHT
             row += 1
     else:
         ws_sum.cell(row=row, column=2, value="  No step-up configured").font = F_SUB
@@ -342,7 +342,7 @@ def build_excel(
                 )
             elif isinstance(val, (int, float, np.integer, np.floating)):
                 cell.alignment = A_RIGHT
-                cell.number_format = '"₹"#,##0.00'
+                cell.number_format = '"Rs."#,##0.00'
 
     for col in ws_proj.columns:
         col_letter = get_column_letter(col[0].column)
@@ -452,17 +452,17 @@ def build_pdf(
     # Projection table (every row)
     elems.append(Paragraph("40-Year Chronological Audit Ledger", section_style))
     SHORT_COLS = [
-        "Policy Year", "Age", "Total Monthly SIP (₹)",
-        "Net End-of-Year Corpus (₹)", "Annual SWP Withdrawal (₹)", "Sustainability Flag"
+        "Policy Year", "Age", "Total Monthly SIP (Rs.)",
+        "Net End-of-Year Corpus (Rs.)", "Annual SWP Withdrawal (Rs.)", "Sustainability Flag"
     ]
     tbl_data = [SHORT_COLS]
     for _, row in df.iterrows():
         tbl_data.append([
             int(row["Policy Year"]),
             int(row["Age"]),
-            f"Rs.{row['Total Monthly SIP (₹)']:,.0f}",
-            f"Rs.{row['Net End-of-Year Corpus (₹)']:,.0f}",
-            f"Rs.{row['Annual SWP Withdrawal (₹)']:,.0f}",
+            f"Rs.{row['Total Monthly SIP (Rs.)']:,.0f}",
+            f"Rs.{row['Net End-of-Year Corpus (Rs.)']:,.0f}",
+            f"Rs.{row['Annual SWP Withdrawal (Rs.)']:,.0f}",
             row["Sustainability Flag"],
         ])
 
@@ -571,7 +571,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 📋 Policy Parameters")
-    annual_prem  = st.number_input("Annual Premium (₹)", 10_000, 10_000_000, 150_000, step=5_000)
+    annual_prem  = st.number_input("Annual Premium (Rs.)", 10_000, 10_000_000, 150_000, step=5_000)
     payout_pct   = st.slider("Insurance Payout %", 10, 100, 40) / 100
     life_mult    = st.slider("Life Cover Multiple", 1, 20, 7)
     ppt          = st.number_input("Premium Payment Term (yrs)", 1, 40, 12)
@@ -580,18 +580,18 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 📈 Return & Withdrawal")
     exp_return   = st.slider("Expected Return (%)", 1.0, 25.0, 18.0, 0.5) / 100
-    monthly_swp  = st.number_input("Monthly SWP Target (₹)", 0, 2_000_000, 125_000, step=5_000)
+    monthly_swp  = st.number_input("Monthly SWP Target (Rs.)", 0, 2_000_000, 125_000, step=5_000)
 
     st.markdown("---")
     st.markdown("### 🪜 Manual SIP Step-Up Schedule")
-    st.caption("Add year-specific absolute monthly SIP increases (₹)")
+    st.caption("Add year-specific absolute monthly SIP increases (Rs.)")
 
     if "step_up_rows" not in st.session_state:
         st.session_state.step_up_rows = []
 
     col_a, col_b = st.columns(2)
     new_yr  = col_a.number_input("Policy Year", 1, int(policy_term), 3, key="su_yr")
-    new_amt = col_b.number_input("Monthly ₹ Increase", 0, 500_000, 1_000, step=500, key="su_amt")
+    new_amt = col_b.number_input("Monthly Rs. Increase", 0, 500_000, 1_000, step=500, key="su_amt")
 
     if st.button("➕ Add Step-Up", use_container_width=True):
         st.session_state.step_up_rows.append((int(new_yr), float(new_amt)))
@@ -604,7 +604,7 @@ with st.sidebar:
         remove_yr = None
         for yr, amt in st.session_state.step_up_rows:
             c1, c2 = st.columns([3, 1])
-            c1.markdown(f"Year {yr}: **₹{amt:,.0f}/mo**")
+            c1.markdown(f"Year {yr}: **Rs.{amt:,.0f}/mo**")
             if c2.button("✕", key=f"rm_{yr}"):
                 remove_yr = yr
         if remove_yr is not None:
@@ -651,12 +651,12 @@ def kpi(container, label, value, cls=""):
         unsafe_allow_html=True,
     )
 
-kpi(k1, "Life Cover",           f"₹{summary['Life Cover Amount']/1e5:.1f}L")
-kpi(k2, "Monthly Base SIP",     f"₹{summary['Monthly Insurance Payout']:,.0f}")
-kpi(k3, f"Corpus @ {retire_age}", f"₹{summary['Corpus at SWP Start']/1e7:.2f}Cr", "accent")
-kpi(k4, "Surplus / Shortfall",  f"₹{summary['Surplus / Shortfall']/1e7:.2f}Cr",
+kpi(k1, "Life Cover",           f"Rs. {summary['Life Cover Amount']/1e5:.1f}L")
+kpi(k2, "Monthly Base SIP",     f"Rs. {summary['Monthly Insurance Payout']:,.0f}")
+kpi(k3, f"Corpus @ {retire_age}", f"Rs. {summary['Corpus at SWP Start']/1e7:.2f}Cr", "accent")
+kpi(k4, "Surplus / Shortfall",  f"Rs. {summary['Surplus / Shortfall']/1e7:.2f}Cr",
     "good" if summary["Surplus / Shortfall"] >= 0 else "bad")
-kpi(k5, "Max Safe SWP/month",   f"₹{summary['Max Safe Monthly SWP']:,.0f}",
+kpi(k5, "Max Safe SWP/month",   f"Rs. {summary['Max Safe Monthly SWP']:,.0f}",
     "good" if not is_bad else "bad")
 
 # ── CHART + NOTE ─────────────────────────────────────────────────────────────
@@ -683,14 +683,14 @@ with rc:
             f"⚠️ Corpus exhausts at Age **{summary['Age Corpus Exhausted']}** "
             f"(Policy Year {summary['Years Corpus Survives']})"
         )
-    st.metric("Terminal Corpus", f"₹{summary['Final Year Corpus']/1e7:.2f} Cr")
+    st.metric("Terminal Corpus", f"Rs. {summary['Final Year Corpus']/1e7:.2f} Cr")
 
 # ── PROJECTION TABLE ─────────────────────────────────────────────────────────
 with st.expander("📋 View Full 40-Year Projection Ledger", expanded=False):
     display_cols = [
-        "Policy Year", "Age", "Total Monthly SIP (₹)",
-        "New Step-Up Added (₹)", "Net End-of-Year Corpus (₹)",
-        "Annual SWP Withdrawal (₹)", "Sustainability Flag",
+        "Policy Year", "Age", "Total Monthly SIP (Rs.)",
+        "New Step-Up Added (Rs.)", "Net End-of-Year Corpus (Rs.)",
+        "Annual SWP Withdrawal (Rs.)", "Sustainability Flag",
     ]
 
     def color_status(val):
@@ -703,10 +703,10 @@ with st.expander("📋 View Full 40-Year Projection Ledger", expanded=False):
         .style
         .map(color_status, subset=["Sustainability Flag"])
         .format({
-            "Total Monthly SIP (₹)":        "₹{:,.0f}",
-            "New Step-Up Added (₹)":         "₹{:,.0f}",
-            "Net End-of-Year Corpus (₹)":    "₹{:,.0f}",
-            "Annual SWP Withdrawal (₹)":     "₹{:,.0f}",
+            "Total Monthly SIP (Rs.)":         "Rs.{:,.0f}",
+            "New Step-Up Added (Rs.)":         "Rs.{:,.0f}",
+            "Net End-of-Year Corpus (Rs.)":    "Rs.{:,.0f}",
+            "Annual SWP Withdrawal (Rs.)":     "Rs.{:,.0f}",
         })
     )
     st.dataframe(styled, use_container_width=True, height=420)
