@@ -22,7 +22,7 @@ st.sidebar.header("📋 Client Parameter Profile")
 client_name = st.sidebar.text_input("Client Name", "Karan Sharma")
 current_age = st.sidebar.number_input("Current Age", 0, 100, 40)
 retire_age = st.sidebar.number_input("Retirement Age", 20, 90, 60)
-expected_return = st.sidebar.slider("Expected Portfolio Return (%)", 1.0, 25.0, 18.0, step=0.5) / 100
+expected_return = st.sidebar.slider("Expected Portfolio Return (%)", 1.0, 25.0, 18.0, step=0.25) / 100
 monthly_swp = st.sidebar.number_input("Target Monthly SWP (₹)", 0, 1000000, 100000)
 
 st.sidebar.subheader("📈 Custom Step-Up Schedule")
