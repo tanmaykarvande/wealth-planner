@@ -31,21 +31,26 @@ step_up_df = st.sidebar.data_editor(pd.DataFrame({
 }), use_container_width=True)
 
 # 4. SIMULATION ENGINE
-def run_simulation():
-    # Reduced points: Only showing every 5th year to keep the chart clean
+def run_simulation(portfolio_return):
+    # Pass the portfolio_return variable into the function
     years = range(40, 81, 5)
-    data = {"Age": years, "Valuation": [10000000 * (1.1)**(i-40) for i in years]}
+    # Use the variable from the slider instead of the hardcoded 1.1
+    data = {"Age": years, "Valuation": [10000000 * (1 + portfolio_return)**(i-40) for i in years]}
     return pd.DataFrame(data)
 
-df = run_simulation()
+# Update the dataframe based on the slider input
+df = run_simulation(expected_return)
 
 # 5. DASHBOARD UI
-st.title("Interactive Advisor Pitch Dashboard")
+st.title("Wealth Indicator Dashboard")
+
+val_at_60 = df.loc[df['Age'] == 60, 'Valuation'].values[0]
+max_swp = (val_at_60 * expected_return) / 12  # Simple math for example
 
 col1, col2, col3 = st.columns(3)
-col1.markdown("<div class='metric-label'>Portfolio Capital at Age 60</div><div class='metric-value'>Rs. 15,286,460.62</div>", unsafe_allow_html=True)
-col2.markdown("<div class='metric-label'>Sustainability Evaluation</div><div class='metric-value'>SUSTAINABLE</div>", unsafe_allow_html=True)
-col3.markdown("<div class='metric-label'>Max Safe SWP Capacity</div><div class='metric-value'>Rs. 219,639.18/mo</div>", unsafe_allow_html=True)
+col1.metric("Portfolio Capital at Age 60", f"Rs. {val_at_60:,.2f}")
+col2.metric("Sustainability Evaluation", "SUSTAINABLE")
+col3.metric("Max Safe SWP Capacity", f"Rs. {max_swp:,.2f}/mo")
 
 st.divider()
 
