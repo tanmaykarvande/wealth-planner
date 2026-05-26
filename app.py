@@ -2,83 +2,73 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
-from io import BytesIO
 
 # 1. PAGE CONFIG
 st.set_page_config(page_title="Wealth Architecture Engine", layout="wide")
 
-# 2. LOGO & CSS STYLING
-# st.image("https://assets.livlong.com/static-images/gmc/LL-INSURANCE-LOGO1.png", width=200)
+# Indian Number Formatter
+def format_indian(val):
+    return f"₹{val:,.2f}"
 
-st.markdown("""
-    <style>
-    .metric-value { font-size: 24px !important; font-weight: bold; color: #1f497d; }
-    .metric-label { font-size: 14px !important; color: #555; }
-    </style>
-    """, unsafe_allow_html=True)
+# 2. ENGINE CLASS
+class GranularWealthEngine:
+    def __init__(self, inputs, step_up_schedule):
+        self.annual_premium = 150000
+        self.payout_pct = 0.40
+        self.base_monthly_sip = round((self.annual_premium * self.payout_pct) / 12, 2)
+        self.monthly_rate = inputs["expected_return"] / 12
+        self.step_up_schedule = step_up_schedule
+        
+    def run_projection(self, current_age, swp_start_age, monthly_swp_target):
+        records = []
+        current_corpus = 0.0
+        cumulative_step_up = 0.0
+        for year in range(1, 41):
+            age = current_age + (year - 1)
+            cumulative_step_up += self.step_up_schedule.get(year, 0.0)
+            total_monthly_sip = self.base_monthly_sip + cumulative_step_up
+            monthly_swp = monthly_swp_target if age >= swp_start_age else 0.0
+            for month in range(1, 13):
+                current_corpus += total_monthly_sip
+                current_corpus *= (1 + self.monthly_rate)
+                current_corpus = max(0.0, current_corpus - monthly_swp)
+            records.append({"Age": age, "Valuation": round(current_corpus, 2)})
+        return pd.DataFrame(records)
 
-# 3. SIDEBAR INPUTS
-# 3. SIDEBAR INPUTS
-st.sidebar.header("📋 Client Parameter Profile")
-client_name = st.sidebar.text_input("Client Name", "Karan Sharma")
+# 3. SIDEBAR
+st.sidebar.header("📋 Client Parameters")
+current_age = st.sidebar.number_input("Current Age", 20, 90, 40)
+retire_age = st.sidebar.number_input("Retirement Age", 20, 90, 60)
+expected_return = st.sidebar.slider("Expected Return (%)", 1.0, 25.0, 18.0, step=0.05) / 100
+monthly_swp = st.sidebar.number_input("Target Monthly SWP (₹)", 0, 1000000, 125000)
 
-# Adding a 'key' to each input allows Streamlit to track them instantly
-current_age = st.sidebar.number_input("Current Age", 0, 100, 40, key="age_input")
-retire_age = st.sidebar.number_input("Retirement Age", 20, 90, 60, key="retire_input")
-expected_return = st.sidebar.slider("Expected Portfolio Return (%)", 1.0, 25.0, 18.0, step=0.05, key="return_slider") / 100
-monthly_swp = st.sidebar.number_input("Target Monthly SWP (₹)", 0, 1000000, 100000, key="swp_input")
+st.sidebar.subheader("📅 Step-Up Schedule (Year: Increase)")
+schedule_df = st.sidebar.data_editor(pd.DataFrame({"Year": [2, 5, 10], "Increase": [0, 0, 0]}), use_container_width=True)
+custom_schedule = dict(zip(schedule_df["Year"], schedule_df["Increase"]))
 
-# 4. SIMULATION ENGINE
-def run_simulation(current_age, retire_age, portfolio_return):
-    # This now uses the actual ages from your inputs
-    years = range(current_age, 81, 5) 
-    # Calculation adjusted to use the age range properly
-    data = {"Age": years, "Valuation": [10000000 * (1 + portfolio_return)**(i-current_age) for i in years]}
-    return pd.DataFrame(data)
+# 4. EXECUTION
+engine = GranularWealthEngine({"expected_return": expected_return}, custom_schedule)
+df = engine.run_projection(current_age, retire_age, monthly_swp)
 
-# Pass the inputs into the function
-df = run_simulation(st.session_state.age_input, st.session_state.retire_input, expected_return)
-
-# 5. DASHBOARD UI
+# 5. UI (Small fonts)
 st.title("Wealth Indicator Dashboard")
-
-val_at_60 = df.loc[df['Age'] == 60, 'Valuation'].values[0]
-max_swp = (val_at_60 * expected_return) / 12  # Simple math for example
+val_at_retire = df.loc[df['Age'] == retire_age, 'Valuation'].values[0]
+status = "SUSTAINABLE" if df.iloc[-1]['Valuation'] > 0 else "CORPUS EXHAUSTED"
 
 col1, col2, col3 = st.columns(3)
-col1.metric("Portfolio Capital at Age 60", f"Rs. {val_at_60:,.2f}")
-col2.metric("Sustainability Evaluation", "SUSTAINABLE")
-col3.metric("Max Safe SWP Capacity", f"Rs. {max_swp:,.2f}/mo")
+col1.metric("Capital at Retirement", format_indian(val_at_retire))
+col2.metric("Sustainability", status)
+col3.metric("Target SWP", format_indian(monthly_swp))
 
-st.divider()
+# 6. CHART WITH DATA LABELS
+st.subheader("Wealth Trajectory")
+fig, ax = plt.subplots(figsize=(10, 4))
+ax.plot(df['Age'], df['Valuation'], marker='o', color='#1f497d')
 
-# 6. CLEANED CHART
-c_left, c_right = st.columns([2, 1])
+# Labels every 5 years
+for i, row in df.iloc[::5].iterrows():
+    ax.annotate(f"₹{row['Valuation']/10000000:.1f}Cr", (row['Age'], row['Valuation']), 
+                textcoords="offset points", xytext=(0,10), ha='center', fontsize=8)
 
-with c_left:
-    st.subheader("Wealth Balance Trajectory Curve")
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(df['Age'], df['Valuation'], marker='o', color='#1f497d', linewidth=2.5)
-    
-    # Y-Axis Formatting
-    def format_crores(x, pos): return f'Rs.{x/10000000:.2f} Cr'
-    ax.yaxis.set_major_formatter(mticker.FuncFormatter(format_crores))
-    
-    # Reduced Labels (Only 4 points to avoid overcrowding)
-    for i, row in df.iloc[::2].iterrows(): # Take every 2nd point from our 5-year step list
-        ax.annotate(f"Rs.{row['Valuation']/10000000:.1f} Cr", 
-                    (row['Age'], row['Valuation']), 
-                    textcoords="offset points", xytext=(0,10), ha='center', fontsize=9)
-    
-    ax.grid(True, linestyle='--', alpha=0.6)
-    st.pyplot(fig)
-
-with c_right:
-    st.subheader("💡 Advisor Guidance")
-    st.info("""
-    If you follow this investment track, you can safely withdraw a maximum of up to 
-    **Rs. 219,639.18/month** starting from age 60 without ever touching or exhausting 
-    your core wealth corpus.
-    """)
-    st.button("📥 Download Branded Executive PDF")
-    st.button("📥 Download Raw Calculations Excel")
+ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'₹{x/10000000:.1f}Cr'))
+st.pyplot(fig)
