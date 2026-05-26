@@ -701,7 +701,7 @@ with st.expander("📋 View Full 40-Year Projection Ledger", expanded=False):
     styled = (
         df[display_cols]
         .style
-        .applymap(color_status, subset=["Sustainability Flag"])
+        .map(color_status, subset=["Sustainability Flag"])
         .format({
             "Total Monthly SIP (₹)":        "₹{:,.0f}",
             "New Step-Up Added (₹)":         "₹{:,.0f}",
