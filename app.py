@@ -515,7 +515,7 @@ def build_pdf(df, summary, inputs, chart_path) -> bytes:
 # 5. STREAMLIT UI
 # ══════════════════════════════════════════════════════════════════════════════
 
-st.set_page_config(page_title="Wealth Architecture Engine", layout="wide", page_icon="📊")
+st.set_page_config(page_title="Wealth Management Dashboard", layout="wide", page_icon="📊")
 
 st.markdown("""
 <style>
@@ -665,8 +665,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── Page Header ───────────────────────────────────────────────────────────────
-st.markdown('<div class="dashboard-title">📊 Wealth Architecture Engine</div>', unsafe_allow_html=True)
-st.markdown('<div class="dashboard-sub">SIP · SWP · Step-Up · Life Cover · Indian Metric Projections</div>', unsafe_allow_html=True)
+st.markdown('<div class="dashboard-title">📊 Wealth Management Dashboard</div>', unsafe_allow_html=True)
+st.markdown('<div class="dashboard-sub">SIP · SWP · Step-Up · Life Cover </div>', unsafe_allow_html=True)
 
 # ── SIDEBAR ───────────────────────────────────────────────────────────────────
 with st.sidebar:
