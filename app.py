@@ -9,7 +9,6 @@ st.set_page_config(page_title="Wealth Architecture Engine", layout="wide")
 # 2. GRANULAR WEALTH ENGINE CLASS
 class GranularWealthEngine:
     def __init__(self, inputs, step_up_schedule):
-        self.client_name = inputs.get("client_name", "Aditya Sharma")
         self.current_age = inputs.get("current_age", 40)
         self.annual_premium = 150000
         self.payout_pct = 0.40
@@ -36,7 +35,17 @@ class GranularWealthEngine:
             records.append({"Age": age, "Valuation": round(current_corpus, 2)})
         return pd.DataFrame(records)
 
-# 3. SIDEBAR INPUTS
+# 3. INDIAN FORMATTER (XX,XX,XX,XXX/-)
+def format_inr(val):
+    val = int(val)
+    s = str(val)
+    if len(s) <= 3: return f"Rs. {s}/-"
+    last_three = s[-3:]
+    other = s[:-3]
+    res = ",".join([other[max(0, i-2):i] for i in range(len(other), 0, -2)][::-1])
+    return f"Rs. {res},{last_three}/-"
+
+# 4. SIDEBAR INPUTS
 st.sidebar.header("📋 Client Parameter Profile")
 client_name = st.sidebar.text_input("Client Name", "Aditya Sharma")
 current_age = st.sidebar.number_input("Current Age", 20, 80, 40)
@@ -48,9 +57,8 @@ st.sidebar.subheader("📈 Custom Step-Up Schedule")
 schedule_df = st.sidebar.data_editor(pd.DataFrame({"Year": [2, 5, 10], "Increase": [0, 0, 0]}), use_container_width=True)
 custom_schedule = dict(zip(schedule_df["Year"], schedule_df["Increase"]))
 
-# 4. EXECUTION
+# 5. EXECUTION
 engine = GranularWealthEngine({
-    "client_name": client_name, 
     "current_age": current_age, 
     "expected_return": expected_return, 
     "monthly_swp": monthly_swp, 
@@ -58,12 +66,8 @@ engine = GranularWealthEngine({
 }, custom_schedule)
 df = engine.run_projection()
 
-# 5. DASHBOARD UI
+# 6. DASHBOARD UI
 st.title("Wealth Indicator Dashboard")
-
-def format_inr(val):
-    return f"Rs. {int(val):,}/-"
-
 val_at_retire = df.loc[df['Age'] == retire_age, 'Valuation'].values[0]
 status = "SUSTAINABLE" if df.iloc[-1]['Valuation'] > 0 else "CORPUS EXHAUSTED"
 
@@ -74,24 +78,37 @@ col3.metric("Target Monthly SWP", format_inr(monthly_swp))
 
 st.divider()
 
-# 6. CHART & ADVISOR GUIDANCE
+# 7. CHART & ADVISOR GUIDANCE
 c_left, c_right = st.columns([2, 1])
 with c_left:
     st.subheader("Wealth Balance Trajectory")
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(df['Age'], df['Valuation'], marker='o', color='#1f497d', linewidth=2)
-    
-    # Labels every 5 years
+    # 5-year labels
     for i, row in df.iloc[::5].iterrows():
         ax.annotate(f"Rs.{row['Valuation']/10000000:.1f} Cr", (row['Age'], row['Valuation']), 
                     textcoords="offset points", xytext=(0,10), ha='center', fontsize=9)
-    
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'Rs.{x/10000000:.2f} Cr'))
     ax.grid(True, linestyle='--', alpha=0.6)
     st.pyplot(fig)
 
 with c_right:
     st.subheader("💡 Advisor Guidance")
-    st.info(f"Based on your profile, the strategy is currently {status}. You can download the full report below.")
+    final_corpus = df.iloc[-1]['Valuation']
+    if status == "SUSTAINABLE":
+        safe_monthly = (val_at_retire * (expected_return / 1.5)) / 12 
+        st.success(f"**STRATEGIC ADVISORY INCOME CAPACITY NOTE:**\n\n"
+                   f"If you follow this investment track, you can safely withdraw a maximum of up to "
+                   f"**{format_inr(safe_monthly)}/month** starting from age {retire_age} "
+                   f"without ever touching or exhausting your core wealth corpus.")
+    else:
+        shortfall = abs(final_corpus) / 40 / 12 
+        st.error(f"**CRITICAL ACTION REQUIRED:**\n\n"
+                 f"This plan is currently unsustainable. To meet your target milestone, you need "
+                 f"to add an additional top-up investment of approximately "
+                 f"**{format_inr(shortfall)}/month** on top of your standard payouts to transition "
+                 f"this framework into a fully sustainable model.")
+    
+    st.write("")
     st.button("📥 Download Branded Executive PDF")
     st.button("📥 Download Raw Calculations Excel")
