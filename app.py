@@ -18,28 +18,26 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # 3. SIDEBAR INPUTS
+# 3. SIDEBAR INPUTS
 st.sidebar.header("📋 Client Parameter Profile")
 client_name = st.sidebar.text_input("Client Name", "Karan Sharma")
-current_age = st.sidebar.number_input("Current Age", 0, 100, 40)
-retire_age = st.sidebar.number_input("Retirement Age", 20, 90, 60)
-expected_return = st.sidebar.slider("Expected Portfolio Return (%)", 1.0, 25.0, 18.0, step=0.25) / 100
-monthly_swp = st.sidebar.number_input("Target Monthly SWP (₹)", 0, 1000000, 100000)
 
-st.sidebar.subheader("📈 Custom Step-Up Schedule")
-step_up_df = st.sidebar.data_editor(pd.DataFrame({
-    "Policy Year": [2, 5, 10], "Step-Up Amount": [0, 0, 0]
-}), use_container_width=True)
+# Adding a 'key' to each input allows Streamlit to track them instantly
+current_age = st.sidebar.number_input("Current Age", 0, 100, 40, key="age_input")
+retire_age = st.sidebar.number_input("Retirement Age", 20, 90, 60, key="retire_input")
+expected_return = st.sidebar.slider("Expected Portfolio Return (%)", 1.0, 25.0, 18.0, step=0.05, key="return_slider") / 100
+monthly_swp = st.sidebar.number_input("Target Monthly SWP (₹)", 0, 1000000, 100000, key="swp_input")
 
 # 4. SIMULATION ENGINE
-def run_simulation(portfolio_return):
-    # Pass the portfolio_return variable into the function
-    years = range(40, 81, 5)
-    # Use the variable from the slider instead of the hardcoded 1.1
-    data = {"Age": years, "Valuation": [10000000 * (1 + portfolio_return)**(i-40) for i in years]}
+def run_simulation(current_age, retire_age, portfolio_return):
+    # This now uses the actual ages from your inputs
+    years = range(current_age, 81, 5) 
+    # Calculation adjusted to use the age range properly
+    data = {"Age": years, "Valuation": [10000000 * (1 + portfolio_return)**(i-current_age) for i in years]}
     return pd.DataFrame(data)
 
-# Update the dataframe based on the slider input
-df = run_simulation(expected_return)
+# Pass the inputs into the function
+df = run_simulation(st.session_state.age_input, st.session_state.retire_input, expected_return)
 
 # 5. DASHBOARD UI
 st.title("Wealth Indicator Dashboard")
