@@ -46,22 +46,12 @@ def indian_fmt(x):
 
 def indian_fmt_short(x):
     """Compact version for axis ticks — fewer decimals."""
-    if x is None:
-        return "0"
-    x = float(x)
-    if x == 0:
-        return "0"
-    neg = x < 0
-    x = abs(x)
     if x >= 1e7:
-        s = f"{x/1e7:.1f}Cr"
+        return f"{x/1e7:.1f}Cr"
     elif x >= 1e5:
-        s = f"{x/1e5:.1f}L"
-    elif x >= 1e3:
-        s = f"{x/1e3:.0f}K"
+        return f"{x/1e5:.1f}L"
     else:
-        s = f"{x:.0f}"
-    return f"-{s}" if neg else s
+        return f"{x:,.0f}"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
