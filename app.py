@@ -413,13 +413,13 @@ def build_pdf(
     is_bad = summary["Sustainability Status"] != "Sustainable"
     kpi_data = [
         ["Metric", "Value"],
-        ["Total Life Cover",              f"₹{summary['Life Cover Amount']:,.0f}"],
-        ["Monthly Base SIP",              f"₹{summary['Monthly Insurance Payout']:,.0f}"],
-        [f"Corpus at Age {inputs['swp_start_age']}", f"₹{summary['Corpus at SWP Start']:,.0f}"],
-        ["Target Corpus for SWP",         f"₹{summary['Target Required Corpus']:,.0f}"],
-        ["Surplus / Shortfall",           f"₹{summary['Surplus / Shortfall']:,.0f}"],
-        ["Max Safe Monthly Withdrawal",   f"₹{summary['Max Safe Monthly SWP']:,.0f}"],
-        ["Terminal Portfolio",            f"₹{summary['Final Year Corpus']:,.0f}"],
+        ["Total Life Cover",              f"Rs.{summary['Life Cover Amount']:,.0f}"],
+        ["Monthly Base SIP",              f"Rs.{summary['Monthly Insurance Payout']:,.0f}"],
+        [f"Corpus at Age {inputs['swp_start_age']}", f"Rs.{summary['Corpus at SWP Start']:,.0f}"],
+        ["Target Corpus for SWP",         f"Rs.{summary['Target Required Corpus']:,.0f}"],
+        ["Surplus / Shortfall",           f"Rs.{summary['Surplus / Shortfall']:,.0f}"],
+        ["Max Safe Monthly Withdrawal",   f"Rs.{summary['Max Safe Monthly SWP']:,.0f}"],
+        ["Terminal Portfolio",            f"Rs.{summary['Final Year Corpus']:,.0f}"],
         ["Strategy Status",               summary["Sustainability Status"].upper()],
     ]
 
@@ -460,9 +460,9 @@ def build_pdf(
         tbl_data.append([
             int(row["Policy Year"]),
             int(row["Age"]),
-            f"₹{row['Total Monthly SIP (₹)']:,.0f}",
-            f"₹{row['Net End-of-Year Corpus (₹)']:,.0f}",
-            f"₹{row['Annual SWP Withdrawal (₹)']:,.0f}",
+            f"Rs.{row['Total Monthly SIP (₹)']:,.0f}",
+            f"Rs.{row['Net End-of-Year Corpus (₹)']:,.0f}",
+            f"Rs.{row['Annual SWP Withdrawal (₹)']:,.0f}",
             row["Sustainability Flag"],
         ])
 
