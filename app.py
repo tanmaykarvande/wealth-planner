@@ -160,8 +160,11 @@ class GranularWealthEngine:
             f"the strategy can safely sustain a monthly withdrawal of {indian_fmt(max_swp)} "
             f"across the remaining {n_months // 12}-year horizon."
         ) if sustain_status == "Sustainable" else (
-            f"⚠️ The current corpus trajectory is insufficient. "
-            f"Corpus exhaustion is projected at Policy Year {survives_yr} (Age {survives_age})."
+            f"💡 STRATEGIC ADVISORY INCOME CAPACITY NOTE: "
+            f"CRITICAL ACTION REQUIRED: This plan is currently unsustainable. "
+            f"To meet your target milestone, you need to add an additional top-up investment of approximately "
+            f"₹{required_corpus / (n_months if n_months > 0 else 1):,.2f}/month on top of the standard payouts "
+            f"from the policy to transition this framework into a fully sustainable model."
         )
 
         return {
