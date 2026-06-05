@@ -82,6 +82,7 @@ class GranularWealthEngine:
         records = []
         corpus  = 0.0
         cumulative_step_up = 0.0
+        prev_year_corpus = 0.0
 
         for year in range(1, self.policy_term + 1):
             age = self.current_age + (year - 1)
@@ -96,13 +97,10 @@ class GranularWealthEngine:
 
             monthly_swp = self.monthly_swp if age >= self.swp_start_age else 0.0
 
-            corpus_before_swp = 0.0
             for m in range(12):
                 corpus = max(corpus, 0.0)
                 corpus += total_monthly_sip
                 corpus *= (1 + self.monthly_rate)
-                if m == 0 and age >= self.swp_start_age:
-                    corpus_before_swp = corpus
                 if corpus >= monthly_swp:
                     corpus -= monthly_swp
                 else:
@@ -122,10 +120,12 @@ class GranularWealthEngine:
                 "Total Monthly SIP (Rs.)":       total_monthly_sip,
                 "Annual SIP Contribution (Rs.)": annual_sip_contrib,
                 "Net End-of-Year Corpus (Rs.)":  net_corpus,
-                "Pre-SWP Corpus (Rs.)":          round(corpus_before_swp, 2),
+                "Pre-SWP Corpus (Rs.)":          prev_year_corpus if age == self.swp_start_age else 0.0,
                 "Annual SWP Withdrawal (Rs.)":   annual_swp_drawn,
                 "Sustainability Flag":           status,
             })
+
+            prev_year_corpus = net_corpus
 
         return pd.DataFrame(records)
 
