@@ -188,48 +188,42 @@ class GranularWealthEngine:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 2. CHART BUILDER  — Indian number formatting on axes and annotations
+# 2. CHART BUILDER — Livlong teal/amber color scheme
 # ══════════════════════════════════════════════════════════════════════════════
 
 def build_chart(df: pd.DataFrame, swp_start_age: int) -> plt.Figure:
-    fig, ax = plt.subplots(figsize=(9, 4), facecolor="#0F1923")
-    ax.set_facecolor("#0F1923")
+    fig, ax = plt.subplots(figsize=(9, 4), facecolor="#FFFFFF")
+    ax.set_facecolor("#FFFFFF")
 
     ages   = df["Age"]
     corpus = df["Net End-of-Year Corpus (Rs.)"]
 
     swp_mask = ages >= swp_start_age
-    ax.fill_between(ages, corpus, where=~swp_mask, alpha=0.08, color="#4A90E2")
-    ax.fill_between(ages, corpus, where=swp_mask,  alpha=0.12, color="#E05C2A")
+    ax.fill_between(ages, corpus, where=~swp_mask, alpha=0.15, color="#00AAAA")
+    ax.fill_between(ages, corpus, where=swp_mask,  alpha=0.15, color="#F5A623")
 
-    ax.plot(ages[~swp_mask], corpus[~swp_mask], color="#4A90E2", lw=2.2, label="Accumulation Phase")
-    ax.plot(ages[swp_mask],  corpus[swp_mask],  color="#E05C2A", lw=2.2, label="SWP Phase")
+    ax.plot(ages[~swp_mask], corpus[~swp_mask], color="#00AAAA", lw=2.5, label="Accumulation Phase")
+    ax.plot(ages[swp_mask],  corpus[swp_mask],  color="#F5A623", lw=2.5, label="SWP Phase")
 
-    # Annotate every 5 years — Indian format
     for _, row in df[df["Age"] % 5 == 0].iterrows():
         val = row["Net End-of-Year Corpus (Rs.)"]
         ax.annotate(
             indian_fmt_short(val),
             (row["Age"], val),
             fontsize=7.5, xytext=(0, 8), textcoords="offset points",
-            ha="center", color="#C5D8EE", fontfamily="monospace",
+            ha="center", color="#004F4F", fontfamily="monospace",
         )
 
-    ax.axvline(swp_start_age, color="#E05C2A", lw=1, linestyle="--", alpha=0.6)
-
-    # Y-axis ticks — Indian format
-    ax.yaxis.set_major_formatter(
-        mticker.FuncFormatter(lambda x, _: indian_fmt_short(x))
-    )
-
-    ax.set_xlabel("Client Age", fontsize=9, color="#8BA3BF")
-    ax.set_ylabel("Portfolio Value", fontsize=9, color="#8BA3BF")
-    ax.tick_params(labelsize=8, colors="#8BA3BF")
+    ax.axvline(swp_start_age, color="#F5A623", lw=1.2, linestyle="--", alpha=0.8)
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: indian_fmt_short(x)))
+    ax.set_xlabel("Client Age", fontsize=9, color="#007F7F")
+    ax.set_ylabel("Portfolio Value", fontsize=9, color="#007F7F")
+    ax.tick_params(labelsize=8, colors="#007F7F")
     ax.spines[["top", "right"]].set_visible(False)
-    ax.spines["left"].set_color("#2A3F55")
-    ax.spines["bottom"].set_color("#2A3F55")
-    ax.legend(fontsize=8, framealpha=0, labelcolor="#C5D8EE")
-    ax.grid(axis="y", alpha=0.2, linestyle="--", color="#4A90E2")
+    ax.spines["left"].set_color("#B2DFDF")
+    ax.spines["bottom"].set_color("#B2DFDF")
+    ax.legend(fontsize=8, framealpha=0, labelcolor="#004F4F")
+    ax.grid(axis="y", alpha=0.3, linestyle="--", color="#B2DFDF")
     fig.tight_layout()
     return fig
 
@@ -267,7 +261,6 @@ def build_excel(df, summary, inputs, step_up_schedule, chart_path) -> bytes:
     A_LEFT  = Alignment(horizontal="left",   vertical="center")
     A_RIGHT = Alignment(horizontal="right",  vertical="center")
 
-    # ── Sheet 1: Executive Summary ────────────────────────────────────────────
     ws_sum.column_dimensions["B"].width = 36
     ws_sum.column_dimensions["C"].width = 28
 
@@ -343,7 +336,6 @@ def build_excel(df, summary, inputs, step_up_schedule, chart_path) -> bytes:
     nc.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
     nc.border = _thin(NAVY)
 
-    # ── Sheet 2: 40-Year Projection ───────────────────────────────────────────
     ws_proj.cell(row=1, column=1, value="40-Year Annual Audit Ledger").font = F_TITLE
     ws_proj.row_dimensions[3].height = 30
 
@@ -370,7 +362,6 @@ def build_excel(df, summary, inputs, step_up_schedule, chart_path) -> bytes:
                 cell.font = Font(name="Calibri", size=10, bold=True,
                                  color=R_TEXT if is_exhausted else G_TEXT)
             elif isinstance(val, (int, float, np.integer, np.floating)):
-                # Display as Indian formatted string
                 cell.value = indian_fmt(val)
                 cell.alignment = A_RIGHT
 
@@ -379,7 +370,6 @@ def build_excel(df, summary, inputs, step_up_schedule, chart_path) -> bytes:
         max_len = max((len(str(c.value)) for c in col if c.value and c.row > 2), default=10)
         ws_proj.column_dimensions[col_letter].width = max(max_len + 3, 14)
 
-    # ── Sheet 3: Charts ───────────────────────────────────────────────────────
     ws_gr.cell(row=1, column=1, value="VISUAL STRATEGIC ANCHORS").font = F_TITLE
     if os.path.exists(chart_path):
         img = openpyxl.drawing.image.Image(chart_path)
@@ -523,7 +513,12 @@ def build_pdf(df, summary, inputs, chart_path) -> bytes:
 # 5. STREAMLIT UI
 # ══════════════════════════════════════════════════════════════════════════════
 
-st.set_page_config(page_title="Wealth Management Dashboard", layout="wide", page_icon="📊")
+# CHANGE 2: favicon set to Livlong LinkedIn logo URL (browser tab icon only)
+st.set_page_config(
+    page_title="Livlong Insurance Wealth Management",
+    layout="wide",
+    page_icon="https://media.licdn.com/dms/image/v2/C4D0BAQG1BchKbkkaPg/company-logo_200_200/company-logo_200_200/0/1677228114466/livlongservices_logo?e=2147483647&v=beta&t=TQ2m2PDaUbfsSIUcAvIm0YMSAo636uCddTlFpGKeDis",
+)
 
 st.markdown("""
 <style>
@@ -534,30 +529,112 @@ st.markdown("""
     }
 
     [data-testid="stAppViewContainer"] {
-        background: #0B1622;
+        background: #F0FAFA;
     }
     [data-testid="stSidebar"] {
-        background: #07101A;
-        border-right: 1px solid #1C2D3E;
+        background: #E0F5F5;
+        border-right: 1px solid #B2DFDF;
     }
-    [data-testid="stSidebar"] * { color: #8BA3BF !important; }
+    [data-testid="stSidebar"] * { color: #005F5F !important; }
     [data-testid="stSidebar"] h1,
     [data-testid="stSidebar"] h2,
     [data-testid="stSidebar"] h3,
-    [data-testid="stSidebar"] strong { color: #C5D8EE !important; }
+    [data-testid="stSidebar"] strong { color: #003F3F !important; }
+
+    /* Sidebar inputs */
+    [data-testid="stSidebar"] input,
+    [data-testid="stSidebar"] .stNumberInput input,
+    [data-testid="stSidebar"] .stTextInput input {
+        background: #FFFFFF !important;
+        color: #004F4F !important;
+        border: 1.5px solid #00AAAA !important;
+        border-radius: 6px !important;
+    }
+    [data-testid="stSidebar"] button {
+        background: #00AAAA !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 6px !important;
+    }
+
+    /* Number input — clean inner container, no double border */
+    [data-testid="stSidebar"] [data-testid="stNumberInput"] div[data-baseweb="input"],
+    [data-testid="stSidebar"] [data-testid="stNumberInput"] div[data-baseweb="input"] * {
+        background: #FFFFFF !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stNumberInput"] div[data-baseweb="input"] {
+        border: 1.5px solid #00AAAA !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stNumberInput"] div[data-baseweb="input"]:focus-within {
+        border-color: #007F7F !important;
+        box-shadow: 0 0 0 3px rgba(0,170,170,0.15) !important;
+    }
+    /* Strip Streamlit's own outer wrapper border/bg */
+    [data-testid="stSidebar"] [data-testid="stNumberInput"] {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    /* The actual text input inside */
+    [data-testid="stSidebar"] [data-testid="stNumberInput"] input {
+        background: #FFFFFF !important;
+        border: none !important;
+        border-radius: 0 !important;
+        color: #003F3F !important;
+        -webkit-text-fill-color: #003F3F !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        padding: 6px 10px !important;
+        box-shadow: none !important;
+    }
+    /* Stepper buttons — rounded pill flush to container edge */
+    [data-testid="stSidebar"] [data-testid="stNumberInput"] button {
+        background: #00AAAA !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 0 !important;
+        width: 36px !important;
+        min-width: 36px !important;
+        height: 100% !important;
+        font-size: 18px !important;
+        font-weight: 400 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        line-height: 1 !important;
+        transition: background 0.15s ease !important;
+        box-shadow: none !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stNumberInput"] button:first-of-type {
+        border-right: 1px solid rgba(255,255,255,0.25) !important;
+        border-radius: 0 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stNumberInput"] button:last-of-type {
+        border-radius: 0 6px 6px 0 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stNumberInput"] button:hover {
+        background: #007F7F !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stNumberInput"] button:active {
+        background: #004F4F !important;
+    }
 
     /* Page title */
     .dashboard-title {
         font-family: 'DM Serif Display', serif;
         font-size: 2rem;
-        color: #E8F0FA;
+        color: #004F4F;
         letter-spacing: -0.5px;
         line-height: 1.2;
         margin-bottom: 2px;
     }
     .dashboard-sub {
         font-size: 13px;
-        color: #4A6A8A;
+        color: #007F7F;
         letter-spacing: 0.8px;
         text-transform: uppercase;
         margin-bottom: 24px;
@@ -567,9 +644,9 @@ st.markdown("""
     .kpi-grid { display: flex; gap: 12px; margin-bottom: 24px; }
     .kpi-card {
         flex: 1;
-        background: #111E2B;
-        border: 1px solid #1C2D3E;
-        border-top: 3px solid #4A90E2;
+        background: #FFFFFF;
+        border: 1px solid #B2DFDF;
+        border-top: 3px solid #00AAAA;
         border-radius: 8px;
         padding: 16px 18px;
         position: relative;
@@ -580,11 +657,11 @@ st.markdown("""
         position: absolute;
         top: 0; right: 0;
         width: 60px; height: 60px;
-        background: radial-gradient(circle at top right, rgba(74,144,226,0.08), transparent);
+        background: radial-gradient(circle at top right, rgba(0,170,170,0.08), transparent);
         border-radius: 0 8px 0 0;
     }
-    .kpi-card.accent { border-top-color: #E09B2A; }
-    .kpi-card.accent::after { background: radial-gradient(circle at top right, rgba(224,155,42,0.08), transparent); }
+    .kpi-card.accent { border-top-color: #F5A623; }
+    .kpi-card.accent::after { background: radial-gradient(circle at top right, rgba(245,166,35,0.08), transparent); }
     .kpi-card.good   { border-top-color: #27AE60; }
     .kpi-card.good::after { background: radial-gradient(circle at top right, rgba(39,174,96,0.08), transparent); }
     .kpi-card.bad    { border-top-color: #E74C3C; }
@@ -592,7 +669,7 @@ st.markdown("""
 
     .kpi-label {
         font-size: 10px;
-        color: #4A6A8A;
+        color: #007F7F;
         text-transform: uppercase;
         letter-spacing: 1px;
         font-weight: 600;
@@ -601,12 +678,12 @@ st.markdown("""
     .kpi-value {
         font-family: 'DM Serif Display', serif;
         font-size: 1.5rem;
-        color: #E8F0FA;
+        color: #003F3F;
         line-height: 1.1;
     }
     .kpi-sub {
         font-size: 11px;
-        color: #3A5A7A;
+        color: #5A8A8A;
         margin-top: 4px;
     }
 
@@ -614,22 +691,22 @@ st.markdown("""
     .section-header {
         font-size: 10px;
         font-weight: 700;
-        color: #4A6A8A;
+        color: #007F7F;
         text-transform: uppercase;
         letter-spacing: 2px;
-        border-bottom: 1px solid #1C2D3E;
+        border-bottom: 1px solid #B2DFDF;
         padding-bottom: 8px;
         margin-bottom: 16px;
     }
 
     /* Note box */
     .note-box {
-        background: #0F1E2D;
-        border: 1px solid #1C2D3E;
-        border-left: 4px solid #4A90E2;
+        background: #E0F5F5;
+        border: 1px solid #B2DFDF;
+        border-left: 4px solid #00AAAA;
         border-radius: 6px;
         padding: 16px 18px;
-        color: #8BA3BF;
+        color: #004F4F;
         font-size: 13px;
         line-height: 1.7;
     }
@@ -649,9 +726,9 @@ st.markdown("""
 
     /* Download buttons */
     div[data-testid="stDownloadButton"] button {
-        background: #111E2B !important;
-        color: #8BA3BF !important;
-        border: 1px solid #1C2D3E !important;
+        background: #00AAAA !important;
+        color: #FFFFFF !important;
+        border: none !important;
         border-radius: 6px !important;
         width: 100%;
         font-weight: 600;
@@ -659,22 +736,70 @@ st.markdown("""
         transition: all 0.2s;
     }
     div[data-testid="stDownloadButton"] button:hover {
-        background: #1B365D !important;
-        color: #E8F0FA !important;
-        border-color: #4A90E2 !important;
+        background: #007F7F !important;
     }
 
     /* Divider */
-    hr { border-color: #1C2D3E !important; margin: 24px 0; }
+    hr { border-color: #B2DFDF !important; margin: 24px 0; }
 
-    /* Dataframe */
-    .stDataFrame { border: 1px solid #1C2D3E; border-radius: 8px; overflow: hidden; }
+    /* Dataframe — full light theme override */
+    .stDataFrame { border: 1px solid #B2DFDF; border-radius: 8px; overflow: hidden; }
+
+    [data-testid="stDataFrame"] > div,
+    [data-testid="stDataFrame"] iframe { background: #FFFFFF !important; }
+
+    [data-testid="stDataFrame"] div[data-testid="stDataFrameResizable"],
+    [data-testid="stDataFrame"] .dvn-scroller,
+    [data-testid="stDataFrame"] .dvn-underlay,
+    [data-testid="stDataFrame"] .dvn-stack { background: #FFFFFF !important; }
+
+    [data-testid="stDataFrame"] [role="columnheader"],
+    [data-testid="stDataFrame"] [role="rowheader"] {
+        background: #E0F5F5 !important;
+        color: #004F4F !important;
+        font-weight: 700 !important;
+        border-bottom: 2px solid #00AAAA !important;
+    }
+
+    [data-testid="stDataFrame"] [role="gridcell"],
+    [data-testid="stDataFrame"] [role="cell"] {
+        background: #FFFFFF !important;
+        color: #003F3F !important;
+        border-color: #B2DFDF !important;
+    }
+
+    [data-testid="stDataFrame"] [role="row"]:nth-child(even) [role="gridcell"] {
+        background: #F0FAFA !important;
+    }
+
+    [data-testid="stDataFrame"] ::-webkit-scrollbar { height: 6px; width: 6px; }
+    [data-testid="stDataFrame"] ::-webkit-scrollbar-track { background: #E0F5F5; }
+    [data-testid="stDataFrame"] ::-webkit-scrollbar-thumb { background: #00AAAA; border-radius: 3px; }
+
+    /* Expander */
+    [data-testid="stExpander"] {
+        background: #FFFFFF !important;
+        border: 1.5px solid #00AAAA !important;
+        border-radius: 8px !important;
+    }
+    [data-testid="stExpander"] summary {
+        color: #004F4F !important;
+        font-weight: 700 !important;
+        font-size: 14px !important;
+    }
+    [data-testid="stExpander"] summary:hover {
+        color: #00AAAA !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # ── Page Header ───────────────────────────────────────────────────────────────
-st.markdown('<div class="dashboard-title">📊 Wealth Management Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="dashboard-sub">SIP · SWP · Step-Up · Life Cover </div>', unsafe_allow_html=True)
+col_logo, col_title = st.columns([1, 8])
+with col_logo:
+    st.image("https://assets.livlong.com/static-images/gmc/LL-INSURANCE-LOGO1.png", width=140)
+with col_title:
+    st.markdown('<div class="dashboard-title">Livlong Insurance Wealth Management</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dashboard-sub">SIP · SWP · Step-Up · Life Cover</div>', unsafe_allow_html=True)
 
 # ── SIDEBAR ───────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -826,7 +951,6 @@ with st.expander("📋 View Full Projection Ledger", expanded=False):
     ]
 
     display_df = df[display_cols].copy()
-    # Format numeric cols as Indian strings for display
     for col in ["Total Monthly SIP (Rs.)", "New Step-Up Added (Rs.)",
                 "Net End-of-Year Corpus (Rs.)", "Annual SWP Withdrawal (Rs.)"]:
         display_df[col] = display_df[col].apply(indian_fmt)
@@ -836,8 +960,37 @@ with st.expander("📋 View Full Projection Ledger", expanded=False):
             return "background-color:#FFC7CE; color:#9C0006; font-weight:700"
         return "background-color:#C6EFCE; color:#006100; font-weight:700"
 
-    styled = display_df.style.map(color_status, subset=["Sustainability Flag"])
-    st.dataframe(styled, use_container_width=True, height=420)
+    def row_style(row):
+        return ["background-color:#F0FAFA; color:#003F3F" if row.name % 2 == 0
+                else "background-color:#FFFFFF; color:#003F3F"] * len(row)
+
+    styled = (
+        display_df.style
+        .apply(row_style, axis=1)
+        .map(color_status, subset=["Sustainability Flag"])
+        .set_table_styles([
+            {"selector": "thead tr th", "props": [
+                ("background-color", "#007F7F"),
+                ("color", "#FFFFFF"),
+                ("font-size", "12px"),
+                ("font-weight", "700"),
+                ("padding", "10px 12px"),
+                ("text-transform", "uppercase"),
+                ("letter-spacing", "0.5px"),
+                ("border-bottom", "2px solid #004F4F"),
+            ]},
+            {"selector": "tbody tr td", "props": [
+                ("padding", "8px 12px"),
+                ("font-size", "13px"),
+                ("border-bottom", "1px solid #B2DFDF"),
+            ]},
+            {"selector": "table", "props": [
+                ("width", "100%"),
+                ("border-collapse", "collapse"),
+            ]},
+        ])
+    )
+    st.write(styled.to_html(), unsafe_allow_html=True)
 
 # ── DOCUMENT GENERATION ───────────────────────────────────────────────────────
 st.markdown("---")
@@ -846,7 +999,7 @@ st.markdown('<div class="section-header">Document Generation</div>', unsafe_allo
 with tempfile.TemporaryDirectory() as tmp:
     chart_path = os.path.join(tmp, "chart.png")
     fig2 = build_chart(df, retire_age)
-    fig2.savefig(chart_path, bbox_inches="tight", dpi=150, facecolor="#0F1923")
+    fig2.savefig(chart_path, bbox_inches="tight", dpi=150, facecolor="#FFFFFF")
     plt.close(fig2)
 
     d1, d2 = st.columns(2)
