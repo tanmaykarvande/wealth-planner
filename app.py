@@ -477,7 +477,20 @@ def build_pdf(df, summary, inputs, chart_path) -> bytes:
             row["Sustainability Flag"],
         ])
 
-    col_w = [0.4*inch, 0.4*inch, 1.2*inch, 1.5*inch, 1.2*inch, 1.1*inch]
+    # Dynamically calculate column widths based on longest content per column
+    char_w = 0.085 * inch  # approx width per character
+    min_w  = 0.4  * inch
+    max_w  = 2.0  * inch
+    total  = 6.5  * inch   # usable page width
+
+    col_max_chars = [
+        max(len(str(tbl_data[r][c])) for r in range(len(tbl_data)))
+        for c in range(len(SHORT_COLS))
+    ]
+    raw_w   = [max(min_w, min(max_w, ch * char_w)) for ch in col_max_chars]
+    scale   = total / sum(raw_w)
+    col_w   = [w * scale for w in raw_w]
+
     proj_table = Table(tbl_data, colWidths=col_w, repeatRows=1)
     proj_ts = TableStyle([
         ("BACKGROUND",    (0, 0), (-1,  0),  NAVY),
