@@ -339,12 +339,14 @@ def build_excel(df, summary, inputs, step_up_schedule, chart_path) -> bytes:
     ws_proj.cell(row=1, column=1, value="40-Year Annual Audit Ledger").font = F_TITLE
     ws_proj.row_dimensions[3].height = 30
 
-    headers = list(df.columns)
+    EXCEL_COLS = [c for c in df.columns if c != "Pre-SWP Corpus (Rs.)"]
+    excel_df = df[EXCEL_COLS]
+    headers = list(excel_df.columns)
     for ci, h in enumerate(headers, 1):
         c = ws_proj.cell(row=3, column=ci, value=h)
         c.font = F_HDR; c.fill = _fill(NAVY); c.alignment = A_CTR; c.border = _thin()
 
-    for ri, (_, row_data) in enumerate(df.iterrows(), 4):
+    for ri, (_, row_data) in enumerate(excel_df.iterrows(), 4):
         ws_proj.row_dimensions[ri].height = 18
         zebra = (ri % 2 == 0)
         for ci, val in enumerate(row_data, 1):
@@ -462,8 +464,7 @@ def build_pdf(df, summary, inputs, chart_path) -> bytes:
 
     elems.append(Paragraph("40-Year Chronological Audit Ledger", section_style))
     SHORT_COLS = [
-        "Policy Year", "Age", "Total Monthly SIP (Rs.)",
-        "Net End-of-Year Corpus (Rs.)", "Annual SWP Withdrawal (Rs.)", "Sustainability Flag"
+        "Policy Year", "Age", "Monthly SIP", "Net Corpus", "Annual SWP Withdrawal", "Status"
     ]
     tbl_data = [SHORT_COLS]
     for _, row in df.iterrows():
@@ -476,7 +477,7 @@ def build_pdf(df, summary, inputs, chart_path) -> bytes:
             row["Sustainability Flag"],
         ])
 
-    col_w = [0.7*inch, 0.5*inch, 1.3*inch, 1.5*inch, 1.3*inch, 1.2*inch]
+    col_w = [0.4*inch, 0.4*inch, 1.2*inch, 1.5*inch, 1.2*inch, 1.1*inch]
     proj_table = Table(tbl_data, colWidths=col_w, repeatRows=1)
     proj_ts = TableStyle([
         ("BACKGROUND",    (0, 0), (-1,  0),  NAVY),
