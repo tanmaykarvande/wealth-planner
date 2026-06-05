@@ -96,10 +96,13 @@ class GranularWealthEngine:
 
             monthly_swp = self.monthly_swp if age >= self.swp_start_age else 0.0
 
-            for _ in range(12):
+            corpus_before_swp = 0.0
+            for m in range(12):
                 corpus = max(corpus, 0.0)
                 corpus += total_monthly_sip
                 corpus *= (1 + self.monthly_rate)
+                if m == 0 and age >= self.swp_start_age:
+                    corpus_before_swp = corpus
                 if corpus >= monthly_swp:
                     corpus -= monthly_swp
                 else:
@@ -119,6 +122,7 @@ class GranularWealthEngine:
                 "Total Monthly SIP (Rs.)":       total_monthly_sip,
                 "Annual SIP Contribution (Rs.)": annual_sip_contrib,
                 "Net End-of-Year Corpus (Rs.)":  net_corpus,
+                "Pre-SWP Corpus (Rs.)":          round(corpus_before_swp, 2),
                 "Annual SWP Withdrawal (Rs.)":   annual_swp_drawn,
                 "Sustainability Flag":           status,
             })
@@ -126,9 +130,10 @@ class GranularWealthEngine:
         return pd.DataFrame(records)
 
     def generate_summary(self, df: pd.DataFrame) -> dict:
-        ret_row = df[df["Age"] == self.swp_start_age - 1]
+        ret_row = df[df["Age"] == self.swp_start_age]
+
         corpus_at_ret = (
-            ret_row["Net End-of-Year Corpus (Rs.)"].values[0]
+            ret_row["Pre-SWP Corpus (Rs.)"].values[0]
             if not ret_row.empty else 0.0
         )
         final_corpus = df["Net End-of-Year Corpus (Rs.)"].iloc[-1]
@@ -163,7 +168,7 @@ class GranularWealthEngine:
             f"💡 STRATEGIC ADVISORY INCOME CAPACITY NOTE: "
             f"CRITICAL ACTION REQUIRED: This plan is currently unsustainable. "
             f"To meet your target milestone, you need to add an additional top-up investment of approximately "
-            f"₹{required_corpus / (n_months if n_months > 0 else 1):,.2f}/month on top of the standard payouts "
+            f"₹{(self.monthly_swp - max_swp):,.2f}/month on top of the standard payouts "
             f"from the policy to transition this framework into a fully sustainable model."
         )
 
