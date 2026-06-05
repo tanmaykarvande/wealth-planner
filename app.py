@@ -126,7 +126,7 @@ class GranularWealthEngine:
         return pd.DataFrame(records)
 
     def generate_summary(self, df: pd.DataFrame) -> dict:
-        ret_row = df[df["Age"] == self.swp_start_age]
+        ret_row = df[df["Age"] == self.swp_start_age - 1]
         corpus_at_ret = (
             ret_row["Net End-of-Year Corpus (Rs.)"].values[0]
             if not ret_row.empty else 0.0
